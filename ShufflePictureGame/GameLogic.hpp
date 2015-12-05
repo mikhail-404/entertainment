@@ -9,6 +9,7 @@
 class GameLogic : public MiniGame
 {
 public:
+
     GameLogic(size_t width, size_t height);
     ~GameLogic();
 
@@ -20,6 +21,7 @@ public:
     void Restart()               override;
     //
     void SwapBlocks(uint8_t first_block, uint8_t second_block);
+    uint8_t GetTextureId(size_t i, size_t j) const;
 
 private:
     void ShuffleIndicies();

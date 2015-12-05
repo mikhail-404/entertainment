@@ -1,6 +1,7 @@
 #include "GameLogic.hpp"
 #include <ctime>
 #include <cstdlib>
+#include <iostream>
 
 GameLogic::GameLogic(size_t width, size_t height)
     : m_window_width(width)
@@ -19,9 +20,10 @@ GameLogic::~GameLogic()
 
 void GameLogic::Initialize()
 {
+    //uint8_t counter = 0;
     for(size_t i = 0; i < cRows; ++i)
         for(size_t j = 0; j < cColumns; ++j)
-            m_pics_id[i][j] = i * cRows + j;
+            m_pics_id[i][j] = static_cast<uint8_t>(i * cColumns + j);
     ShuffleIndicies();
 }
 
@@ -34,7 +36,7 @@ bool GameLogic::IsComplete() const
 {
     for(size_t i = 0; i < cRows; ++i)
         for(size_t j = 0; j < cColumns; ++j)
-            if (m_pics_id[i][j] != i * cRows + j)
+            if (m_pics_id[i][j] != i * cColumns + j)
                 return false;
     return true;
 }
@@ -66,6 +68,11 @@ void GameLogic::SwapBlocks(uint8_t first_block, uint8_t second_block)
     std::swap(m_pics_id[a.first][a.second], m_pics_id[b.first][b.second]);
 }
 
+uint8_t GameLogic::GetTextureId(size_t i, size_t j) const
+{
+    return m_pics_id[i][j];
+}
+
 void GameLogic::ShuffleIndicies()
 {
     std::srand(std::time(0));
@@ -76,6 +83,15 @@ void GameLogic::ShuffleIndicies()
             uint8_t rand_j = std::rand() % (cColumns - 1) + std::rand() % 2;
             std::swap(m_pics_id[i][j], m_pics_id[rand_i][rand_j]);
         }
+
+    for(size_t i = 0; i < cRows; ++i)
+    {
+        for(size_t j = 0; j < cColumns; ++j)
+        {
+            std::cout << (int)m_pics_id[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
 }
 
 std::pair<uint8_t, uint8_t> CalcPosition(uint8_t i, uint8_t j, size_t window_height, size_t window_width, uint8_t block_height, uint8_t block_width)

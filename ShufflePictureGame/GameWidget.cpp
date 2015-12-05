@@ -9,8 +9,6 @@ GameWidget::GameWidget(size_t screen_width, size_t screen_height, QWidget *paren
     , m_max_height(screen_height)
 {
     OpenImage();
-    //ResizeWindow();
-    //setFixedSize(GAME_WINDOW_WIDTH, GAME_WINDOW_HEIGHT);
     setFixedSize(m_image->width(), m_image->height());
     m_game_logic = new GameLogic(width(), height());
 }
@@ -23,8 +21,32 @@ GameWidget::~GameWidget()
 void GameWidget::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);
-    QImage scale_image = m_image->scaled(width(), height(), Qt::KeepAspectRatio);
-    painter.drawImage(0, 0, scale_image);
+    //QImage scale_image = m_image->scaled(width(), height(), Qt::KeepAspectRatio);
+    //painter.drawImage(0, 0, scale_image);
+    size_t w = width() / m_game_logic->cColumns;
+    size_t h = height() / m_game_logic->cRows;
+
+    qDebug() << "W: " << m_game_logic->cColumns << " H: " << m_game_logic->cRows;
+
+    QImage temp_image = m_image->scaled(width(), height(), Qt::KeepAspectRatio);
+    for(size_t i = 0; i < m_game_logic->cRows; ++i)
+        for(size_t j = 0; j < m_game_logic->cColumns; ++j)
+        {
+            uint8_t texture_id = m_game_logic->GetTextureId(i, j);
+            size_t p, q;
+            p = (texture_id / m_game_logic->cColumns) * height() / m_game_logic->cRows;
+            q = (texture_id % m_game_logic->cColumns) * width() / m_game_logic->cColumns;
+
+            size_t x, y;
+            x = i * height() / m_game_logic->cRows;
+            y = j * width() / m_game_logic->cColumns;
+
+            qDebug() << p << " " << q << " " << x << " " << y;
+
+            QRect rect(q, p, w, h);
+            QImage cropped = temp_image.copy(rect);
+            painter.drawImage(y, x, cropped);
+        }
 }
 
 void GameWidget::mousePressEvent(QMouseEvent *e)
