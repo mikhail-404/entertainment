@@ -4,12 +4,12 @@
 class MiniGame
 {
 public:
-    virtual ~MiniGame() = 0;
-    virtual void Initialize() = 0;
+    virtual ~MiniGame()                  = 0;
+    virtual void Initialize()            = 0;
     virtual void Click(float x, float y) = 0;
-    virtual bool IsComplete() const = 0;
-    virtual void Render() const = 0;
-    virtual void Restart() = 0;
+    virtual bool IsComplete() const      = 0;
+    virtual void Render() const          = 0;
+    virtual void Restart()               = 0;
 
 public:
     static const int cTextureId = 0;
