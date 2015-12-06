@@ -7,16 +7,18 @@ GameWidget::GameWidget(size_t screen_width, size_t screen_height, QWidget *paren
     : QWidget(parent)
     , m_max_width(screen_width)
     , m_max_height(screen_height)
+    , m_game_logic(new GameLogic())
+    , m_image(nullptr)
     , m_game_is_finished(false)
 {
     setWindowTitle("Перемешанная картинка");
+
     InitializeSettings();
 
-    // создаем объект, отвечающий за логику игры
-    m_game_logic = new GameLogic();
-
-    //
+    // связываем сигнал начала игры со слотом gameStart()
+    // для инициализации необходимых данных
     connect(this, SIGNAL(starting_game()), SLOT(gameStart()));
+
     // связываем сигнал завершения игры со слотом hameFinish()
     // для обработки случая завершения
     connect(this, SIGNAL(complete_pic()), SLOT(gameFinish()));
@@ -29,6 +31,9 @@ GameWidget::~GameWidget()
 
 void GameWidget::paintEvent(QPaintEvent *)
 {
+    if (m_image == nullptr)
+        return;
+
     // передаем объект для рисования
     QPainter painter(this);
 
@@ -133,15 +138,27 @@ void GameWidget::gameFinish()
 
 void GameWidget::OpenImage()
 {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Открыть изображение"), "/home", tr("Images (*.png *.jpeg *.jpg)"));
-    m_image = new QImage(fileName);
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Открыть изображение"), "", tr("Images (*.png *.jpeg *.jpg)"));
+
+    if (!fileName.isEmpty())
+    {
+        // если память под объект была выделена, то просто перезагружаем содержимое
+        if (m_image != nullptr)
+            m_image->load(fileName);
+        else
+            m_image = new QImage(fileName);
+    }
 }
 
 void GameWidget::ResizeWindow()
 {
+    if (m_image == nullptr)
+    {
+        setFixedSize(GAME_WINDOW_WIDTH, GAME_WINDOW_HEIGHT);
+    }
     // если размер входного изображения больше размера экрана,
     // P.S. static_cast <int> чтобы валидно сравнивать (no warnings)
-    if (m_image->width() > static_cast<int>(m_max_width) || m_image->height() > static_cast<int>(m_max_height))
+    else if (m_image->width() > static_cast<int>(m_max_width) || m_image->height() > static_cast<int>(m_max_height))
     {
         // расчитываем максимальынй коэффициент, на который надо разделить каждую из составляющих размера
         // чтобы входное изображение на форме поместилось на экране
@@ -152,7 +169,9 @@ void GameWidget::ResizeWindow()
     }
     // если поместилось, то просто фиксируем входные размеры
     else
+    {
         setFixedSize(m_image->width(), m_image->height());
+    }
 }
 
 void GameWidget::InitializeSettings()

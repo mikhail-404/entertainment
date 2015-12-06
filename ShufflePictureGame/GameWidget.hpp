@@ -41,6 +41,7 @@ private:
 
     QQueue <QPair<size_t, size_t>> m_click_coords;
 
+
 private:
     static constexpr size_t GAME_WINDOW_HEIGHT = 480;
     static constexpr size_t GAME_WINDOW_WIDTH  = 640;

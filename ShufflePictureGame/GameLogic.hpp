@@ -29,11 +29,4 @@ private:
     std::vector <std::vector <uint8_t>> m_pics_id;
 };
 
-std::pair <uint8_t, uint8_t> CalcPosition(uint8_t i,
-                                          uint8_t j,
-                                          size_t  window_height,
-                                          size_t  window_width,
-                                          uint8_t block_height,
-                                          uint8_t block_width);
-
 #endif // GAMELOGIC_HPP
