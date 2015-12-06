@@ -7,10 +7,19 @@ GameWidget::GameWidget(size_t screen_width, size_t screen_height, QWidget *paren
     : QWidget(parent)
     , m_max_width(screen_width)
     , m_max_height(screen_height)
+    , m_game_is_finished(false)
 {
-    OpenImage();
-    setFixedSize(m_image->width(), m_image->height());
-    m_game_logic = new GameLogic(width(), height());
+    setWindowTitle("Перемешанная картинка");
+    InitializeSettings();
+
+    // создаем объект, отвечающий за логику игры
+    m_game_logic = new GameLogic();
+
+    //
+    connect(this, SIGNAL(starting_game()), SLOT(gameStart()));
+    // связываем сигнал завершения игры со слотом hameFinish()
+    // для обработки случая завершения
+    connect(this, SIGNAL(complete_pic()), SLOT(gameFinish()));
 }
 
 GameWidget::~GameWidget()
@@ -20,38 +29,106 @@ GameWidget::~GameWidget()
 
 void GameWidget::paintEvent(QPaintEvent *)
 {
+    // передаем объект для рисования
     QPainter painter(this);
-    //QImage scale_image = m_image->scaled(width(), height(), Qt::KeepAspectRatio);
-    //painter.drawImage(0, 0, scale_image);
+
+    // вычисляем размеры блока
     size_t w = width() / m_game_logic->cColumns;
     size_t h = height() / m_game_logic->cRows;
 
-    qDebug() << "W: " << m_game_logic->cColumns << " H: " << m_game_logic->cRows;
-
+    // создаем новое изображение для нарезки
     QImage temp_image = m_image->scaled(width(), height(), Qt::KeepAspectRatio);
+    // проходим по всем блокам изображения (перемешанного)
     for(size_t i = 0; i < m_game_logic->cRows; ++i)
         for(size_t j = 0; j < m_game_logic->cColumns; ++j)
         {
+            // получаем текущую текстуру, которая находится по адресу (i, j)
             uint8_t texture_id = m_game_logic->GetTextureId(i, j);
-            size_t p, q;
-            p = (texture_id / m_game_logic->cColumns) * height() / m_game_logic->cRows;
-            q = (texture_id % m_game_logic->cColumns) * width() / m_game_logic->cColumns;
 
-            size_t x, y;
-            x = i * height() / m_game_logic->cRows;
-            y = j * width() / m_game_logic->cColumns;
+            // вычисляем координаты начала блока на изображении
+            size_t p = (texture_id / m_game_logic->cColumns) * height() / m_game_logic->cRows;
+            size_t q = (texture_id % m_game_logic->cColumns) * width() / m_game_logic->cColumns;
 
-            qDebug() << p << " " << q << " " << x << " " << y;
+            // вычисляем координаты на форме, куда будем рисовать определенную часть изображния
+            size_t x = i * height() / m_game_logic->cRows;
+            size_t y = j * width() / m_game_logic->cColumns;
 
             QRect rect(q, p, w, h);
+            // выделяем нужную область на изображении
             QImage cropped = temp_image.copy(rect);
+            // отображаем ее на форме
             painter.drawImage(y, x, cropped);
         }
+
+    // если игра была завершена, то выведем сообщение
+    if (m_game_is_finished)
+    {
+        QFont font = painter.font();
+        font.setPointSize(width() * 0.0625);
+        painter.setFont(font);
+        painter.setPen(Qt::white);
+        painter.drawText(QRect(0, 0, width(), height()), Qt::AlignCenter, "Задание выполнено!");
+    }
 }
 
 void GameWidget::mousePressEvent(QMouseEvent *e)
 {
-    qDebug() << e->pos().x() << " " << e->pos().y();
+    // если была нажата правая кнопка мыши
+    if (e->button() == Qt::RightButton)
+    {
+        // сигнализируем о начале новой игры
+        emit starting_game();
+    }
+
+    // если игра была завершена, то игнорируем нажатия левой кнопки мыши
+    if (m_game_is_finished)
+        return;
+
+    // рассчитываем размеры блоков
+    int w = width() / m_game_logic->cColumns;
+    int h = height() / m_game_logic->cRows;
+
+    // получаем координаты выбранного блока
+    size_t i_block = e->pos().y() / h;
+    size_t j_block = e->pos().x() / w;
+
+    // кладем в очередь
+    m_click_coords.push_back(qMakePair(i_block, j_block));
+
+    // как только в очереди накапливается больше одного элемента,
+    // то это означает, что можно обменивать местами блоки
+    if (m_click_coords.size() > 1)
+    {
+        // вытаскиваем координаты из очереди
+        auto a = m_click_coords.takeFirst();
+        auto b = m_click_coords.takeLast();
+        // очищаем очередь
+        m_click_coords.clear();
+        // меняем полученный блоки местами в матрице
+        m_game_logic->SwapBlocks(a.first, a.second, b.first, b.second);
+        // обновляем содержимое мозаики на форме
+        update();
+
+        // если проверка окончания игры дала положительный результат
+        if (m_game_logic->IsComplete())
+        {
+            // сигализируем об этом
+            emit complete_pic();
+        }
+    }
+}
+
+void GameWidget::gameStart()
+{
+    InitializeSettings();
+    // перезапускаем игру
+    m_game_logic->Restart();
+}
+
+void GameWidget::gameFinish()
+{
+    m_game_is_finished = true;
+    update();
 }
 
 void GameWidget::OpenImage()
@@ -62,11 +139,32 @@ void GameWidget::OpenImage()
 
 void GameWidget::ResizeWindow()
 {
-    if (m_image->width() > m_max_width && m_image->height() > m_max_height)
+    // если размер входного изображения больше размера экрана,
+    // P.S. static_cast <int> чтобы валидно сравнивать (no warnings)
+    if (m_image->width() > static_cast<int>(m_max_width) || m_image->height() > static_cast<int>(m_max_height))
     {
-        float coef_w = m_image->width() * 1. / m_max_width;
-        float coef_h = m_image->height() * 1. / m_max_height;
-        setFixedSize(m_image->width() / (coef_w + 1), m_image->height() / (coef_h + 1));
+        // расчитываем максимальынй коэффициент, на который надо разделить каждую из составляющих размера
+        // чтобы входное изображение на форме поместилось на экране
+        float coef = qMax(m_image->width() * 1. / m_max_width, m_image->height() * 1. / m_max_height);
+
+        // фиксируем размер виджета
+        setFixedSize(m_image->width() * 1. / coef, m_image->height() * 1. / coef);
     }
+    // если поместилось, то просто фиксируем входные размеры
+    else
+        setFixedSize(m_image->width(), m_image->height());
 }
 
+void GameWidget::InitializeSettings()
+{
+    // открываем изображение
+    OpenImage();
+    // изменяем размеры формы в зависимости от входного изображения
+    ResizeWindow();
+    // сбрасываем флаг завершения игры
+    m_game_is_finished = false;
+    // очищаем очередь (вдруг, в ней что-то уже было)
+    m_click_coords.clear();
+    // перерисовываем форму
+    update();
+}

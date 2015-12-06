@@ -13,8 +13,8 @@ public:
 
 public:
     static const int cTextureId = 0;
-    static const int cColumns   = 5;
-    static const int cRows      = 4;
+    static const int cColumns   = 2;
+    static const int cRows      = 2;
 };
 
 inline MiniGame::~MiniGame() {}

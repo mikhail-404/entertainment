@@ -3,9 +3,7 @@
 #include <cstdlib>
 #include <iostream>
 
-GameLogic::GameLogic(size_t width, size_t height)
-    : m_window_width(width)
-    , m_window_height(height)
+GameLogic::GameLogic()
 {
     std::vector <std::vector <uint8_t> > temp(cRows, std::vector <uint8_t>(cColumns));
     m_pics_id.swap(temp);
@@ -51,21 +49,11 @@ void GameLogic::Restart()
     Initialize();
 }
 
-void GameLogic::SwapBlocks(uint8_t first_block, uint8_t second_block)
+void GameLogic::SwapBlocks(size_t ai, size_t aj, size_t bi, size_t bj)
 {
-    std::pair <uint8_t, uint8_t> a = CalcPosition(first_block / cColumns,
-                                                  first_block % cColumns,
-                                                  m_window_height,
-                                                  m_window_width,
-                                                  cRows, cColumns);
-
-    std::pair <uint8_t, uint8_t> b = CalcPosition(second_block / cColumns,
-                                                  second_block % cColumns,
-                                                  m_window_height,
-                                                  m_window_width,
-                                                  cRows, cColumns);
-
-    std::swap(m_pics_id[a.first][a.second], m_pics_id[b.first][b.second]);
+    if (ai >= cRows || aj >= cColumns || bi >= cRows || bj >= cColumns)
+        return;
+    std::swap(m_pics_id[ai][aj], m_pics_id[bi][bj]);
 }
 
 uint8_t GameLogic::GetTextureId(size_t i, size_t j) const
@@ -83,15 +71,6 @@ void GameLogic::ShuffleIndicies()
             uint8_t rand_j = std::rand() % (cColumns - 1) + std::rand() % 2;
             std::swap(m_pics_id[i][j], m_pics_id[rand_i][rand_j]);
         }
-
-    for(size_t i = 0; i < cRows; ++i)
-    {
-        for(size_t j = 0; j < cColumns; ++j)
-        {
-            std::cout << (int)m_pics_id[i][j] << " ";
-        }
-        std::cout << std::endl;
-    }
 }
 
 std::pair<uint8_t, uint8_t> CalcPosition(uint8_t i, uint8_t j, size_t window_height, size_t window_width, uint8_t block_height, uint8_t block_width)

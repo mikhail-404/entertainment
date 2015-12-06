@@ -9,8 +9,7 @@
 class GameLogic : public MiniGame
 {
 public:
-
-    GameLogic(size_t width, size_t height);
+    GameLogic();
     ~GameLogic();
 
     //
@@ -20,7 +19,7 @@ public:
     void Render() const          override;
     void Restart()               override;
     //
-    void SwapBlocks(uint8_t first_block, uint8_t second_block);
+    void SwapBlocks(size_t ai, size_t aj, size_t bi, size_t bj);
     uint8_t GetTextureId(size_t i, size_t j) const;
 
 private:
@@ -28,8 +27,6 @@ private:
 
 private:
     std::vector <std::vector <uint8_t>> m_pics_id;
-    size_t                              m_window_width;
-    size_t                              m_window_height;
 };
 
 std::pair <uint8_t, uint8_t> CalcPosition(uint8_t i,
